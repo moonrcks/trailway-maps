@@ -1,0 +1,38 @@
+# Rebuilds Trailway's offline city packs from OpenStreetMap each month and publishes them as the "packs"
+# release, which the app downloads (Settings › Map). Run it by hand from Actions › City packs › Run workflow.
+name: City packs
+
+on:
+  schedule:
+    - cron: "23 6 2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: city-packs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the packs
+        run: python3 build_city_packs.py packs
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view packs >/dev/null 2>&1 || gh release create packs --title "City packs" \
+            --notes "Ohio city maps for Trailway, rebuilt monthly from OpenStreetMap. Map data © OpenStreetMap contributors, available under the Open Database License 1.0."
+          gh release upload packs packs/*.twpk --clobber
+          gh release upload packs packs/manifest.json --clobber   # last, so it only lists packs already uploaded
+      - name: Record the build
+        # A commit each month also keeps GitHub from pausing the schedule after 60 days without activity.
+        run: |
+          cp packs/manifest.json manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "City packs $(date -u +%F)" && git push || echo "Nothing to record"
