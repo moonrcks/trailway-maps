@@ -1,0 +1,103 @@
+{
+ "version": 1,
+ "updated": "2026-11-03",
+ "attribution": "\u00a9 OpenStreetMap contributors (ODbL)",
+ "packs": [
+  {
+   "id": "columbus",
+   "name": "Columbus",
+   "minLat": 39.8,
+   "minLon": -83.25,
+   "maxLat": 40.2,
+   "maxLon": -82.75,
+   "bytes": 6327383,
+   "ways": 110339,
+   "file": "columbus.twpk",
+   "updated": "2026-11-03"
+  },
+  {
+   "id": "cleveland",
+   "name": "Cleveland",
+   "minLat": 41.3,
+   "minLon": -81.95,
+   "maxLat": 41.62,
+   "maxLon": -81.4,
+   "bytes": 5849315,
+   "ways": 110976,
+   "file": "cleveland.twpk",
+   "updated": "2026-11-03"
+  },
+  {
+   "id": "cincinnati",
+   "name": "Cincinnati",
+   "minLat": 39.03,
+   "minLon": -84.75,
+   "maxLat": 39.35,
+   "maxLon": -84.25,
+   "bytes": 3872860,
+   "ways": 73386,
+   "file": "cincinnati.twpk",
+   "updated": "2026-11-03"
+  },
+  {
+   "id": "dayton",
+   "name": "Dayton",
+   "minLat": 39.6,
+   "minLon": -84.35,
+   "maxLat": 39.9,
+   "maxLon": -83.95,
+   "bytes": 2729029,
+   "ways": 39258,
+   "file": "dayton.twpk",
+   "updated": "2026-11-03"
+  },
+  {
+   "id": "toledo",
+   "name": "Toledo",
+   "minLat": 41.53,
+   "minLon": -83.8,
+   "maxLat": 41.75,
+   "maxLon": -83.45,
+   "bytes": 1800001,
+   "ways": 32966,
+   "file": "toledo.twpk",
+   "updated": "2026-11-03"
+  },
+  {
+   "id": "akron",
+   "name": "Akron",
+   "minLat": 40.95,
+   "minLon": -81.65,
+   "maxLat": 41.2,
+   "maxLon": -81.4,
+   "bytes": 1952333,
+   "ways": 26281,
+   "file": "akron.twpk",
+   "updated": "2026-11-03"
+  },
+  {
+   "id": "canton",
+   "name": "Canton",
+   "minLat": 40.72,
+   "minLon": -81.5,
+   "maxLat": 40.9,
+   "maxLon": -81.3,
+   "bytes": 670150,
+   "ways": 8349,
+   "file": "canton.twpk",
+   "updated": "2026-11-03"
+  },
+  {
+   "id": "youngstown",
+   "name": "Youngstown",
+   "minLat": 41.0,
+   "minLon": -80.8,
+   "maxLat": 41.2,
+   "maxLon": -80.55,
+   "bytes": 1285434,
+   "ways": 20364,
+   "file": "youngstown.twpk",
+   "updated": "2026-11-03"
+  }
+ ]
+}
