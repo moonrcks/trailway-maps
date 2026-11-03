@@ -4,7 +4,11 @@ classified the way the app does it (OSMService.classify / oneway) and written in
 app loads instantly (OfflineMaps.swift). Run monthly by the moonrcks/trailway-maps GitHub workflow, which
 publishes the packs and manifest.json as release assets.
 
-  python3 build_city_packs.py OUT_DIR [city ...]       (default: every city)
+  python3 build_city_packs.py OUT_DIR [--pbf FILE] [city ...]       (default: every city)
+
+With --pbf, streets come from an OpenStreetMap extract (the monthly workflow downloads Geofabrik's Ohio file
+and reads it with pyosmium: pip install osmium). Without it, they come from the public Overpass API, a tile
+at a time; a city whose tiles keep failing is skipped and keeps its previous pack.
 
 Pack format (little-endian), compressed with raw DEFLATE:
   "TWPK", u16 version (1), u16 reserved
@@ -34,6 +38,8 @@ TILE = 0.12   # degrees per tile side, so each Overpass request stays well withi
 KINDS = {"protectedPath": 0, "bikeLane": 1, "sharedRoad": 2, "sidewalk": 3}
 
 # The same streets the app downloads for a route (OSMService.buildQuery, full mode).
+HIGHWAYS = {"cycleway", "path", "footway", "pedestrian", "living_street", "residential", "unclassified", "tertiary",
+            "tertiary_link", "secondary", "secondary_link", "primary", "primary_link", "track"}
 FILTER = ('way["highway"~"^(cycleway|path|footway|pedestrian|living_street|residential|unclassified|tertiary|'
           'tertiary_link|secondary|secondary_link|primary|primary_link|track)$"]["access"!~"^(private|no)$"]'
           '["bicycle"!="no"]["area"!="yes"]')
@@ -119,11 +125,49 @@ def fetch(bbox):
     raise RuntimeError(f"Overpass failed for {bbox}: {last}")
 
 
-def build(city, out_dir):
+def wanted(t):
+    """FILTER, for tags read from a file."""
+    return (t.get("highway") in HIGHWAYS and t.get("access") not in ("private", "no")
+            and t.get("bicycle") != "no" and t.get("area") != "yes")
+
+
+def read_pbf(path, cities):
+    """Each city's streets from an OpenStreetMap extract, as Overpass would return them: every way with a
+    node in the city's box, with all of its nodes. Returns {city id: (coords, ways)}."""
+    import osmium
+    found = {c[0]: ({}, {}) for c in cities}
+
+    class Streets(osmium.SimpleHandler):
+        def way(self, w):
+            if w.tags.get("highway") not in HIGHWAYS:
+                return
+            tags = {t.k: t.v for t in w.tags}
+            if not wanted(tags):
+                return
+            refs, points = [], []
+            for node in w.nodes:
+                if node.location.valid():
+                    refs.append(node.ref)
+                    points.append((node.location.lat, node.location.lon))
+            if len(refs) < 2:
+                return
+            for cid, _, s, west, n, e in cities:
+                if any(s <= la <= n and west <= lo <= e for la, lo in points):
+                    coords, ways = found[cid]
+                    coords.update(zip(refs, points))
+                    ways[w.id] = {"id": w.id, "nodes": refs, "tags": tags}
+
+    started = time.time()
+    Streets().apply_file(path, locations=True)
+    print(f"Read {path} in {time.time() - started:.0f} s", flush=True)
+    return found
+
+
+def build(city, out_dir, data=None):
     cid, name, s, w, n, e = city
     print(f"{name}:", flush=True)
-    coords, ways = {}, {}
-    lat = s
+    coords, ways = data if data else ({}, {})
+    lat = n if data else s   # streets already read from a file: no tiles to fetch
     while lat < n:
         lon = w
         while lon < e:
@@ -183,8 +227,14 @@ def build(city, out_dir):
 
 
 def main():
-    out_dir = sys.argv[1]
-    wanted = set(sys.argv[2:])
+    args = sys.argv[1:]
+    out_dir = args.pop(0)
+    pbf = None
+    if "--pbf" in args:
+        i = args.index("--pbf")
+        pbf = args[i + 1]
+        del args[i:i + 2]
+    chosen = set(args)
     os.makedirs(out_dir, exist_ok=True)
     manifest_path = os.path.join(out_dir, "manifest.json")
     try:
@@ -193,14 +243,24 @@ def main():
         previous = {}
     today = datetime.date.today().isoformat()
     packs = []
+    cities = [c for c in CITIES if not chosen or c[0] in chosen]
+    data = read_pbf(pbf, cities) if pbf else {}
     for city in CITIES:
-        if wanted and city[0] not in wanted:
+        if city not in cities:
             if city[0] in previous:
                 packs.append(previous[city[0]])
             continue
-        pack = build(city, out_dir)
+        try:
+            pack = build(city, out_dir, data.get(city[0]))
+        except RuntimeError as error:   # Overpass kept failing: keep the last good pack, if any
+            print(f"  skipped: {error}", flush=True)
+            if city[0] in previous:
+                packs.append(previous[city[0]])
+            continue
         pack["updated"] = today
         packs.append(pack)
+    if not packs:
+        sys.exit("No city packs were built.")
     with open(manifest_path, "w") as f:
         json.dump({"version": 1, "updated": today, "attribution": "© OpenStreetMap contributors (ODbL)", "packs": packs}, f, indent=1)
     print("Wrote", manifest_path)

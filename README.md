@@ -6,10 +6,12 @@ The packs cover Akron, Canton, Cincinnati, Cleveland, Columbus, Dayton, Toledo a
 
 ## How they're made
 
-`build_city_packs.py` downloads each city from the Overpass API and writes `<city>.twpk` files and `manifest.json`. The City packs workflow runs it on the 2nd of every month and replaces the release files. To run it now, open Actions › City packs › Run workflow. To build locally:
+`build_city_packs.py` reads each city's streets from OpenStreetMap (Geofabrik's Ohio extract in the workflow, or the Overpass API when run without `--pbf`) and writes `<city>.twpk` files and `manifest.json`. The City packs workflow runs it on the 2nd of every month and replaces the release files. To run it now, open Actions › City packs › Run workflow. To build locally:
 
 ```
-python3 build_city_packs.py packs [city ...]
+pip install osmium
+curl -LO https://download.geofabrik.de/north-america/us/ohio-latest.osm.pbf
+python3 build_city_packs.py packs --pbf ohio-latest.osm.pbf [city ...]
 ```
 
 The script is a copy of `tools/build_city_packs.py` from the Trailway app, which classifies streets the same way.

@@ -18,8 +18,14 @@ jobs:
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
+      # One download of Ohio from OpenStreetMap (Geofabrik's daily extract) instead of hundreds of
+      # requests to the public Overpass servers, which are often too busy.
+      - name: Download Ohio from OpenStreetMap
+        run: curl -sSfL --retry 3 -o ohio.osm.pbf https://download.geofabrik.de/north-america/us/ohio-latest.osm.pbf
       - name: Build the packs
-        run: python3 build_city_packs.py packs
+        run: |
+          pip install --quiet osmium
+          python3 build_city_packs.py packs --pbf ohio.osm.pbf
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
